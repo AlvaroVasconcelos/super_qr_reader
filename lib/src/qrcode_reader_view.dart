@@ -17,6 +17,11 @@ class QrcodeReaderView extends StatefulWidget {
   final Widget helpWidget;
   final Color cornerColor;
   final Widget scanWidget;
+
+  final String noCameraPermissionMessage;
+  final String ratioSuggestErrorMessage;
+  final String scanInfoMessage;
+
   QrcodeReaderView({
     Key key,
     @required this.onScan,
@@ -26,6 +31,9 @@ class QrcodeReaderView extends StatefulWidget {
     this.scanBoxRatio = 0.85,
     this.cornerColor,
     this.scanWidget,
+    this.noCameraPermissionMessage,
+    this.ratioSuggestErrorMessage,
+    this.scanInfoMessage
   }) : super(key: key);
 
   @override
@@ -53,7 +61,7 @@ class QrcodeReaderViewState extends State<QrcodeReaderView> {
           hasCameraPermission = true;
         });
       } else {
-        Navigator.of(context).pop('Sem permissões para acessar a câmera');
+        Navigator.of(context).pop(widget.noCameraPermissionMessage);
       }
     });
   }
@@ -137,8 +145,7 @@ class QrcodeReaderViewState extends State<QrcodeReaderView> {
               final qrScanSize = constraints.maxWidth * widget.scanBoxRatio;
               final mediaQuery = MediaQuery.of(context);
               if (constraints.maxHeight < qrScanSize * 1.5) {
-                print(
-                    "It is recommended that the height to scan area height ratio be greater than 1.5");
+                print(widget.ratioSuggestErrorMessage);
               }
               return Stack(
                 children: <Widget>[
@@ -190,7 +197,7 @@ class QrcodeReaderViewState extends State<QrcodeReaderView> {
                             style: TextStyle(color: Colors.white),
                             child: widget.helpWidget ??
                                 Text(
-                                  "Coloque o código dentro do quadro",
+                                  widget.scanInfoMessage,
                                   textAlign: TextAlign.center,
                                 ),
                           ),
