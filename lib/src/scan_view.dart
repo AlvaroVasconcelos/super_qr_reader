@@ -6,7 +6,11 @@ import 'package:super_qr_reader/src/qrcode_reader_view.dart';
 
 class ScanView extends StatefulWidget {
   final Color cornerColor;
-  ScanView({Key key, this.cornerColor}) : super(key: key);
+  final String noPermissionMessage;
+  final String scanMessage;
+  final String ratioErrMessage;
+
+  ScanView({Key key, this.cornerColor,this.noPermissionMessage,this.scanMessage,this.ratioErrMessage}) : super(key: key);
 
   @override
   _ScanViewState createState() => new _ScanViewState();
@@ -26,6 +30,9 @@ class _ScanViewState extends State<ScanView> {
           elevation: 0.0,
         ),
         cornerColor: widget.cornerColor ?? Colors.white,
+        noCameraPermissionMessage: widget.noPermissionMessage,
+        scanInfoMessage: widget.scanMessage,
+        ratioSuggestErrorMessage: widget.ratioErrMessage,
         // scanWidget: Center(
         //   child: Container(
         //     // padding: EdgeInsets.all(),
