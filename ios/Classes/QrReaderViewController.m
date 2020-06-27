@@ -43,6 +43,7 @@
         NSLog(@"%@,%@", width, height);
         _qrcodeview= [[UIView alloc] initWithFrame:CGRectMake(0, 0, width.floatValue, height.floatValue) ];
         _qrcodeview.opaque = NO;
+        _qrcodeview.clipsToBounds = YES;
         _qrcodeview.backgroundColor = [UIColor blackColor];
         isOpenFlash = NO;
         _isReading = NO;
@@ -85,9 +86,12 @@
     [captureMetadataOutput setMetadataObjectTypes:[NSArray arrayWithObject:AVMetadataObjectTypeQRCode]];
     _videoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:_captureSession];
     [_videoPreviewLayer setVideoGravity:AVLayerVideoGravityResizeAspectFill];
+    NSLog(@"%f%f",  _qrcodeview.layer.frame.size.width,_qrcodeview.layer.frame.size.height);
     [_videoPreviewLayer setFrame:_qrcodeview.layer.bounds];
     [_qrcodeview.layer addSublayer:_videoPreviewLayer];
     [_captureSession startRunning];
+    CGRect visibleRect = [_videoPreviewLayer metadataOutputRectOfInterestForRect: _videoPreviewLayer.bounds];
+    captureMetadataOutput.rectOfInterest = visibleRect;
     return YES;
 }
 

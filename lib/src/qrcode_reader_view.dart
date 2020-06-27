@@ -154,8 +154,8 @@ class QrcodeReaderViewState extends State<QrcodeReaderView> {
                       width: constraints.maxWidth * 0.84,
                       height: constraints.maxWidth * 0.84,
                       child: QrReaderView(
-                        width: constraints.maxWidth,
-                        height: constraints.maxHeight,
+                        width: constraints.maxWidth*0.84,
+                        height: constraints.maxWidth*0.84,
                         callback: _onCreateController,
                       ),
                     ),

@@ -47,6 +47,9 @@ class _HomePageState extends State<HomePage> {
                   MaterialPageRoute(
                     builder: (context) => ScanView(
                       cornerColor: Colors.blue,
+                      scanMessage: "scan",
+                      ratioErrMessage: "ratio",
+                      noPermissionMessage: "no permission",
                     ),
                   ),
                 );
