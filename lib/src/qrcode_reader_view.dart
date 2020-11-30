@@ -15,6 +15,13 @@ class QrcodeReaderView extends StatefulWidget {
   final double scanBoxRatio;
   final Color boxLineColor;
   final Widget helpWidget;
+  final Color cornerColor;
+  final Widget scanWidget;
+
+  final String noCameraPermissionMessage;
+  final String ratioSuggestErrorMessage;
+  final String scanInfoMessage;
+
   QrcodeReaderView({
     Key key,
     @required this.onScan,
@@ -22,6 +29,11 @@ class QrcodeReaderView extends StatefulWidget {
     this.boxLineColor = Colors.cyanAccent,
     this.helpWidget,
     this.scanBoxRatio = 0.85,
+    this.cornerColor,
+    this.scanWidget,
+    this.noCameraPermissionMessage,
+    this.ratioSuggestErrorMessage,
+    this.scanInfoMessage
   }) : super(key: key);
 
   @override
@@ -33,18 +45,14 @@ class QrcodeReaderView extends StatefulWidget {
 /// GlobalKey<QrcodeReaderViewState> qrViewKey = GlobalKey();
 /// qrViewKey.currentState.startScan();
 /// ```
-class QrcodeReaderViewState extends State<QrcodeReaderView>
-    with TickerProviderStateMixin {
+class QrcodeReaderViewState extends State<QrcodeReaderView> {
   QrReaderViewController _controller;
-  AnimationController _animationController;
   bool openFlashlight;
-  Timer _timer;
   bool hasCameraPermission = false;
   @override
   void initState() {
     super.initState();
     openFlashlight = false;
-    _initAnimation();
 
     SchedulerBinding.instance.addPostFrameCallback((_) async {
       bool isOk = await getPermissionOfCamera();
@@ -53,7 +61,7 @@ class QrcodeReaderViewState extends State<QrcodeReaderView>
           hasCameraPermission = true;
         });
       } else {
-        Navigator.of(context).pop('Sem permissões para acessar a câmera');
+        Navigator.of(context).pop(widget.noCameraPermissionMessage);
       }
     });
   }
@@ -61,39 +69,6 @@ class QrcodeReaderViewState extends State<QrcodeReaderView>
   Future<bool> getPermissionOfCamera() async {
     PermissionStatus status = await Permission.camera.request();
     return status == PermissionStatus.granted;
-  }
-
-  void _initAnimation() {
-    setState(() {
-      _animationController = AnimationController(
-          vsync: this, duration: Duration(milliseconds: 1000));
-    });
-    _animationController
-      ..addListener(_upState)
-      ..addStatusListener((state) {
-        if (state == AnimationStatus.completed) {
-          _timer = Timer(Duration(seconds: 1), () {
-            _animationController?.reverse(from: 1.0);
-          });
-        } else if (state == AnimationStatus.dismissed) {
-          _timer = Timer(Duration(seconds: 1), () {
-            _animationController?.forward(from: 0.0);
-          });
-        }
-      });
-    _animationController.forward(from: 0.0);
-  }
-
-  void _clearAnimation() {
-    _timer?.cancel();
-    if (_animationController != null) {
-      _animationController?.dispose();
-      _animationController = null;
-    }
-  }
-
-  void _upState() {
-    setState(() {});
   }
 
   void _onCreateController(QrReaderViewController controller) async {
@@ -112,11 +87,9 @@ class QrcodeReaderViewState extends State<QrcodeReaderView>
   void startScan() {
     isScan = false;
     _controller.startCamera(_onQrBack);
-    _initAnimation();
   }
 
   void stopScan() {
-    _clearAnimation();
     _controller.stopCamera();
   }
 
@@ -172,100 +145,112 @@ class QrcodeReaderViewState extends State<QrcodeReaderView>
               final qrScanSize = constraints.maxWidth * widget.scanBoxRatio;
               final mediaQuery = MediaQuery.of(context);
               if (constraints.maxHeight < qrScanSize * 1.5) {
-                print(
-                    "It is recommended that the height to scan area height ratio be greater than 1.5");
+                print(widget.ratioSuggestErrorMessage);
               }
               return Stack(
                 children: <Widget>[
-                  SizedBox(
-                    width: constraints.maxWidth,
-                    height: constraints.maxHeight,
-                    child: QrReaderView(
-                      width: constraints.maxWidth,
-                      height: constraints.maxHeight,
-                      callback: _onCreateController,
-                    ),
-                  ),
-                  if (widget.headerWidget != null) widget.headerWidget,
-                  Positioned(
-                    left: (constraints.maxWidth - qrScanSize) / 2,
-                    top: (constraints.maxHeight - qrScanSize) * 0.333333,
-                    child: CustomPaint(
-                      painter: QrScanBoxPainter(
-                        boxLineColor: widget.boxLineColor,
-                        animationValue: _animationController?.value ?? 0,
-                        isForward: _animationController?.status ==
-                            AnimationStatus.forward,
-                      ),
-                      child: SizedBox(
-                        width: qrScanSize,
-                        height: qrScanSize,
+                  Center(
+                    child: SizedBox(
+                      width: constraints.maxWidth * 0.84,
+                      height: constraints.maxWidth * 0.84,
+                      child: QrReaderView(
+                        width: constraints.maxWidth*0.84,
+                        height: constraints.maxWidth*0.84,
+                        callback: _onCreateController,
                       ),
                     ),
                   ),
+                  if (widget.headerWidget != null)
+                    widget.headerWidget,
+                  widget.scanWidget == null
+                      ? Positioned(
+                          left: (constraints.maxWidth - qrScanSize) / 2,
+                          top: (constraints.maxHeight - qrScanSize) / 2,
+                          child: CustomPaint(
+                            painter: QrScanBoxPainter(
+                              boxLineColor: widget.boxLineColor,
+                              cornerColor: widget.cornerColor,
+                            ),
+                            child: SizedBox(
+                              width: qrScanSize,
+                              height: qrScanSize,
+                            ),
+                          ),
+                        )
+                      : widget.scanWidget,
                   Positioned(
-                    top: (constraints.maxHeight - qrScanSize) * 0.333333 +
+                    top: (constraints.maxHeight - qrScanSize) * (1 / 2) +
                         qrScanSize +
                         24,
                     width: constraints.maxWidth,
                     child: Align(
                       alignment: Alignment.center,
-                      child: DefaultTextStyle(
-                        style: TextStyle(color: Colors.white),
-                        child: widget.helpWidget ??
-                            Text(
-                              "Coloque o código dentro do quadro",
-                              textAlign: TextAlign.center,
-                            ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: (constraints.maxHeight - qrScanSize) * 0.333333 +
-                        qrScanSize -
-                        12 -
-                        35,
-                    width: constraints.maxWidth,
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: setFlashlight,
-                        child: openFlashlight ? flashOpen : flashClose,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    width: constraints.maxWidth,
-                    bottom: constraints.maxHeight == mediaQuery.size.height
-                        ? 12 + mediaQuery.padding.top
-                        : 12,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.only(right: 32),
-                          child: GestureDetector(
+                      child: Column(
+                        children: <Widget>[
+                          GestureDetector(
                             behavior: HitTestBehavior.translucent,
-                            onTap: _scanImage,
-                            child: Container(
-                              width: 45,
-                              height: 45,
-                              alignment: Alignment.center,
-                              child: Image.asset(
-                                "assets/tool_img.png",
-                                package: "super_qr_reader",
-                                width: 25,
-                                height: 25,
-                                color: Colors.white54,
-                              ),
-                            ),
+                            onTap: setFlashlight,
+                            child: openFlashlight ? flashOpen : flashClose,
                           ),
-                        ),
-                      ],
+                          SizedBox(height: constraints.maxWidth * 0.05),
+                          DefaultTextStyle(
+                            style: TextStyle(color: Colors.white),
+                            child: widget.helpWidget ??
+                                Text(
+                                  widget.scanInfoMessage,
+                                  textAlign: TextAlign.center,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )
+                  ),
+                  // Positioned(
+                  //   top: (constraints.maxHeight - qrScanSize) * (1 / 2) +
+                  //       qrScanSize -
+                  //       12 -
+                  //       35,
+                  //   width: constraints.maxWidth,
+                  //   child: Align(
+                  //     alignment: Alignment.center,
+                  //     child: GestureDetector(
+                  //       behavior: HitTestBehavior.translucent,
+                  //       onTap: setFlashlight,
+                  //       child: openFlashlight ? flashOpen : flashClose,
+                  //     ),
+                  //   ),
+                  // ),
+                  // Positioned(
+                  //   width: constraints.maxWidth,
+                  //   bottom: constraints.maxHeight == mediaQuery.size.height
+                  //       ? 12 + mediaQuery.padding.top
+                  //       : 12,
+                  //   child: Row(
+                  //     crossAxisAlignment: CrossAxisAlignment.center,
+                  //     mainAxisAlignment: MainAxisAlignment.end,
+                  //     children: <Widget>[
+                  //       Padding(
+                  //         padding: const EdgeInsets.only(right: 32),
+                  //         child: GestureDetector(
+                  //           behavior: HitTestBehavior.translucent,
+                  //           onTap: _scanImage,
+                  //           child: Container(
+                  //             width: 45,
+                  //             height: 45,
+                  //             alignment: Alignment.center,
+                  //             child: Image.asset(
+                  //               "assets/tool_img.png",
+                  //               package: "super_qr_reader",
+                  //               width: 25,
+                  //               height: 25,
+                  //               color: Colors.white54,
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // )
                 ],
               );
             }),
@@ -274,7 +259,6 @@ class QrcodeReaderViewState extends State<QrcodeReaderView>
 
   @override
   void dispose() {
-    _clearAnimation();
     super.dispose();
   }
 }
@@ -283,12 +267,14 @@ class QrScanBoxPainter extends CustomPainter {
   final double animationValue;
   final bool isForward;
   final Color boxLineColor;
+  final Color cornerColor;
 
-  QrScanBoxPainter(
-      {@required this.animationValue,
-      @required this.isForward,
-      this.boxLineColor})
-      : assert(animationValue != null),
+  QrScanBoxPainter({
+    this.cornerColor,
+    this.animationValue = 0,
+    this.isForward = false,
+    this.boxLineColor,
+  })  : assert(animationValue != null),
         assert(isForward != null);
 
   @override
@@ -299,14 +285,14 @@ class QrScanBoxPainter extends CustomPainter {
     canvas.drawRRect(
       borderRadius,
       Paint()
-        ..color = Colors.white54
+        ..color = Colors.transparent
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
+        ..strokeWidth = 10,
     );
     final borderPaint = Paint()
-      ..color = Colors.white
+      ..color = cornerColor ?? Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 5;
     final path = new Path();
     // leftTop
     path.moveTo(0, 50);
@@ -336,35 +322,35 @@ class QrScanBoxPainter extends CustomPainter {
         BorderRadius.all(Radius.circular(12)).toRRect(Offset.zero & size));
 
     // 绘制横向网格
-    final linePaint = Paint();
-    final lineSize = size.height * 0.45;
-    final leftPress = (size.height + lineSize) * animationValue - lineSize;
-    linePaint.style = PaintingStyle.stroke;
-    linePaint.shader = LinearGradient(
-      colors: [Colors.transparent, boxLineColor],
-      begin: isForward ? Alignment.topCenter : Alignment(0.0, 2.0),
-      end: isForward ? Alignment(0.0, 0.5) : Alignment.topCenter,
-    ).createShader(Rect.fromLTWH(0, leftPress, size.width, lineSize));
-    for (int i = 0; i < size.height / 5; i++) {
-      canvas.drawLine(
-        Offset(
-          i * 5.0,
-          leftPress,
-        ),
-        Offset(i * 5.0, leftPress + lineSize),
-        linePaint,
-      );
-    }
-    for (int i = 0; i < lineSize / 5; i++) {
-      canvas.drawLine(
-        Offset(0, leftPress + i * 5.0),
-        Offset(
-          size.width,
-          leftPress + i * 5.0,
-        ),
-        linePaint,
-      );
-    }
+    // final linePaint = Paint();
+    // final lineSize = size.height * 0.45;
+    // final leftPress = (size.height + lineSize) * animationValue - lineSize;
+    // linePaint.style = PaintingStyle.stroke;
+    // linePaint.shader = LinearGradient(
+    //   colors: [Colors.transparent, boxLineColor],
+    //   begin: isForward ? Alignment.topCenter : Alignment(0.0, 2.0),
+    //   end: isForward ? Alignment(0.0, 0.5) : Alignment.topCenter,
+    // ).createShader(Rect.fromLTWH(0, leftPress, size.width, lineSize));
+    // for (int i = 0; i < size.height / 5; i++) {
+    //   canvas.drawLine(
+    //     Offset(
+    //       i * 5.0,
+    //       leftPress,
+    //     ),
+    //     Offset(i * 5.0, leftPress + lineSize),
+    //     linePaint,
+    //   );
+    // }
+    // for (int i = 0; i < lineSize / 5; i++) {
+    //   canvas.drawLine(
+    //     Offset(0, leftPress + i * 5.0),
+    //     Offset(
+    //       size.width,
+    //       leftPress + i * 5.0,
+    //     ),
+    //     linePaint,
+    //   );
+    // }
   }
 
   @override
